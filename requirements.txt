@@ -1,1 +1,3 @@
 openpyxl
+google-auth
+google-auth-oauthlib
