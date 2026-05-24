@@ -40,11 +40,9 @@ def autenticar_google():
         info_claves = json.loads(GOOGLE_SERVICE_ACCOUNT)
         
         # REPARACIÓN ROBUSTA DE LLAVE PEM:
-        # Corrige deformaciones, caracteres de escape '\\n' y saltos incorrectos del portapapeles web
         if "private_key" in info_claves:
             key_original = info_claves["private_key"]
             
-            # Limpiamos los encabezados y unificamos todo el cuerpo eliminando rupturas aleatorias
             cuerpo = (key_original
                       .replace("-----BEGIN PRIVATE KEY-----", "")
                       .replace("-----END PRIVATE KEY-----", "")
@@ -53,10 +51,7 @@ def autenticar_google():
                       .replace(" ", "")
                       .strip())
             
-            # Forzamos la división exacta de líneas a 64 caracteres de acuerdo a la RFC 1421
             cuerpo_formateado = re.sub(r"(.{64})", r"\1\n", cuerpo)
-            
-            # Reconstruimos el formato PEM plano ideal para criptografía
             info_claves["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{cuerpo_formateado}\n-----END PRIVATE KEY-----\n"
             
         credenciales = service_account.Credentials.from_service_account_info(
@@ -193,6 +188,8 @@ if drive_service is not None or not GOOGLE_SERVICE_ACCOUNT:
                                 resultado = subir_reporte_a_drive(drive_service, stream_procesado, nuevo_nombre)
                                 
                                 st.markdown(f"✅ Guardado en Drive: **[{nuevo_nombre}]({resultado['webViewLink']})**")
+                        
+                        # Los globos se lanzan FUERA del ciclo for, al terminar todo el grupo
                         st.balloons()
                 else:
                     st.info("💡 Modo simulación: Los datos se leyeron pero no se guardó nada en Drive.")
