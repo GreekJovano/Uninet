@@ -29,7 +29,7 @@ GOOGLE_CLIENT_CONFIG = st.secrets.get("GOOGLE_CLIENT_CONFIG")
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
-REDIRECT_URI = "https://tu-app-en-la-nube.streamlit.app" 
+REDIRECT_URI = "https://uninet-mnjmu7tqpizn4tenme7ipt.streamlit.app/" 
 ID_CARPETA_DRIVE = "1kdb74WkObbD94WsKZzRDXfmI4Jlsxgqr"
 
 # --- 3. CONEXIÓN CON GOOGLE DRIVE ---
