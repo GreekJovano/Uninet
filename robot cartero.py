@@ -4,6 +4,7 @@ import openpyxl
 import io
 import os
 import json
+import re  # Se añade para la reconstrucción estricta de la llave PEM
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
@@ -38,9 +39,25 @@ def autenticar_google():
     try:
         info_claves = json.loads(GOOGLE_SERVICE_ACCOUNT)
         
-        # REPARACIÓN DE LLAVE: Asegura que los saltos de línea \n se interpreten correctamente
+        # REPARACIÓN ROBUSTA DE LLAVE PEM:
+        # Corrige deformaciones, caracteres de escape '\\n' y saltos incorrectos del portapapeles web
         if "private_key" in info_claves:
-            info_claves["private_key"] = info_claves["private_key"].replace("\\n", "\n")
+            key_original = info_claves["private_key"]
+            
+            # Limpiamos los encabezados y unificamos todo el cuerpo eliminando rupturas aleatorias
+            cuerpo = (key_original
+                      .replace("-----BEGIN PRIVATE KEY-----", "")
+                      .replace("-----END PRIVATE KEY-----", "")
+                      .replace("\\n", "")
+                      .replace("\n", "")
+                      .replace(" ", "")
+                      .strip())
+            
+            # Forzamos la división exacta de líneas a 64 caracteres de acuerdo a la RFC 1421
+            cuerpo_formateado = re.sub(r"(.{64})", r"\1\n", cuerpo)
+            
+            # Reconstruimos el formato PEM plano ideal para criptografía
+            info_claves["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{cuerpo_formateado}\n-----END PRIVATE KEY-----\n"
             
         credenciales = service_account.Credentials.from_service_account_info(
             info_claves, scopes=SCOPES
@@ -141,7 +158,6 @@ def inyectar_datos_excel(plantilla_stream, datos, tipo_reporte):
     return output_stream
 
 # --- 7. PANTALLA VISUAL (INTERFAZ DE USUARIO) ---
-# La condición ahora evalúa de forma segura si la variable existe o si falta la configuración
 if drive_service is not None or not GOOGLE_SERVICE_ACCOUNT:
     st.subheader("📥 Entrada de Datos de WhatsApp")
     entrada_texto = st.text_area(
