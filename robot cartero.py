@@ -37,6 +37,11 @@ def autenticar_google():
         return None
     try:
         info_claves = json.loads(GOOGLE_SERVICE_ACCOUNT)
+        
+        # REPARACIÓN DE LLAVE: Asegura que los saltos de línea \n se interpreten correctamente
+        if "private_key" in info_claves:
+            info_claves["private_key"] = info_claves["private_key"].replace("\\n", "\n")
+            
         credenciales = service_account.Credentials.from_service_account_info(
             info_claves, scopes=SCOPES
         )
@@ -44,8 +49,6 @@ def autenticar_google():
     except Exception as e:
         st.error(f"❌ Error al inicializar cuenta de servicio: {e}")
         return None
-
-drive_service = autenticar_google()
 
 # --- 4. CEREBRO DE INTELIGENCIA ARTIFICIAL (GEMINI) ---
 def analizar_mensaje_con_gemini(texto_whatsapp):
