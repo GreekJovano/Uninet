@@ -4,8 +4,7 @@ import openpyxl
 import io
 import os
 import json
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from google import genai
@@ -25,37 +24,26 @@ y llenará tus plantillas de Excel guardándolas directamente en tu Google Drive
 """)
 
 # --- 2. CONFIGURACIÓN DE LLAVES Y SEGURIDAD ---
-GOOGLE_CLIENT_CONFIG = st.secrets.get("GOOGLE_CLIENT_CONFIG")
+GOOGLE_SERVICE_ACCOUNT = st.secrets.get("GOOGLE_SERVICE_ACCOUNT")
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
-REDIRECT_URI = "https://uninet-mnjmu7tqpizn4tenme7ipt.streamlit.app/" 
 ID_CARPETA_DRIVE = "1kdb74WkObbD94WsKZzRDXfmI4Jlsxgqr"
 
-# --- 3. CONEXIÓN CON GOOGLE DRIVE ---
+# --- 3. CONEXIÓN CON GOOGLE DRIVE (CUENTA DE SERVICIO) ---
 def autenticar_google():
-    if "credentials" not in st.session_state:
-        if not GOOGLE_CLIENT_CONFIG:
-            st.warning("⚠️ Configuración de Google Drive no detectada. Ejecutando en modo de prueba.")
-            return None
-        
-        flow = Flow.from_client_config(
-            json.loads(GOOGLE_CLIENT_CONFIG),
-            scopes=SCOPES,
-            redirect_uri=REDIRECT_URI
+    if not GOOGLE_SERVICE_ACCOUNT:
+        st.warning("⚠️ Configuración de Cuenta de Servicio no detectada. Ejecutando en modo de prueba.")
+        return None
+    try:
+        info_claves = json.loads(GOOGLE_SERVICE_ACCOUNT)
+        credenciales = service_account.Credentials.from_service_account_info(
+            info_claves, scopes=SCOPES
         )
-        
-        query_params = st.query_params
-        if "code" in query_params:
-            flow.fetch_token(code=query_params["code"])
-            st.session_state.credentials = flow.credentials
-            st.rerun()
-        else:
-            auth_url, _ = flow.authorization_url(prompt='select_account')
-            st.markdown(f'<a href="{auth_url}" target="_self" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">🔐 Conectar con Google Drive</a>', unsafe_allow_html=True)
-            return None
-    
-    return build('drive', 'v3', credentials=st.session_state.credentials)
+        return build('drive', 'v3', credentials=credenciales)
+    except Exception as e:
+        st.error(f"❌ Error al inicializar cuenta de servicio: {e}")
+        return None
 
 drive_service = autenticar_google()
 
@@ -146,7 +134,7 @@ def inyectar_datos_excel(plantilla_stream, datos, tipo_reporte):
     return output_stream
 
 # --- 7. PANTALLA VISUAL (INTERFAZ DE USUARIO) ---
-if drive_service or not GOOGLE_CLIENT_CONFIG:
+if drive_service or not GOOGLE_SERVICE_ACCOUNT:
     st.subheader("📥 Entrada de Datos de WhatsApp")
     entrada_texto = st.text_area(
         "Pega aquí el mensaje completo de coordinación:",
@@ -170,7 +158,7 @@ if drive_service or not GOOGLE_CLIENT_CONFIG:
                         plantillas = buscar_plantillas_en_drive(drive_service)
                         
                     if not plantillas:
-                        st.error("No encontré las plantillas en la carpeta de Drive.")
+                        st.error("No encontré las plantillas en la carpeta de Drive. Verifica que la carpeta esté compartida con el correo de la Cuenta de Servicio.")
                     else:
                         for p in plantillas:
                             with st.spinner(f"📝 Modificando: {p['name']}..."):
