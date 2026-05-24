@@ -50,6 +50,10 @@ def autenticar_google():
         st.error(f"❌ Error al inicializar cuenta de servicio: {e}")
         return None
 
+# Inicialización explícita para evitar NameError en entornos en la nube
+drive_service = None
+drive_service = autenticar_google()
+
 # --- 4. CEREBRO DE INTELIGENCIA ARTIFICIAL (GEMINI) ---
 def analizar_mensaje_con_gemini(texto_whatsapp):
     if not GEMINI_API_KEY:
@@ -137,7 +141,8 @@ def inyectar_datos_excel(plantilla_stream, datos, tipo_reporte):
     return output_stream
 
 # --- 7. PANTALLA VISUAL (INTERFAZ DE USUARIO) ---
-if drive_service or not GOOGLE_SERVICE_ACCOUNT:
+# La condición ahora evalúa de forma segura si la variable existe o si falta la configuración
+if drive_service is not None or not GOOGLE_SERVICE_ACCOUNT:
     st.subheader("📥 Entrada de Datos de WhatsApp")
     entrada_texto = st.text_area(
         "Pega aquí el mensaje completo de coordinación:",
