@@ -1,0 +1,12 @@
+# Credenciales y tokens de Google
+credentials.json
+token.json
+*.json
+
+# Configuración local de Streamlit (por si acaso)
+.streamlit/secrets.toml
+
+# Archivos temporales o del sistema
+__pycache__/
+*.pyc
+.DS_Store
